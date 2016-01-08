@@ -15,10 +15,11 @@ The "launch_exp_ex.sh" script just calls the "train_attentive_reader.py" script 
 parameters.
 
     * Under the scripts/ directory you can find simple scripts to preprocess the data.
-    * Under the codes/core, you can find simple functions and classes about the core utilities and
-functionalities.
-    * Under the codes/attentive_reader/ folder you can access to the main codes for the
-attentive_reader
+    
+    * Under the codes/core, you can find simple functions and classes about the core utilities and functionalities.
+
+    * Under the codes/attentive_reader/ folder you can access to the main codes for the attentive_reader
+
     * Experiment scripts will be added under the experiments/ directory.
 
 The main code functionalities are provided under, ./codes/att_reader folder. In that folder, you
