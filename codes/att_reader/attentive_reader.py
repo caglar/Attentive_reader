@@ -19,6 +19,7 @@ from pkl_data_iterator import load_data as load_pkl_data
 from core.utils import ensure_dir_exists, safe_grad, sharedX
 from core.learning_rule import Adasecant, Adam, RMSPropMomentum, AdaDelta
 from core.utils.nnet_utils import running_ave
+import warnings
 
 
 profile = False
@@ -79,6 +80,8 @@ def prepare_data_sents(seqs_x, seqs_y):
             x_mask[:lengths_w[idx][i], i, idx] = 1.
         if x[:, :, idx].sum((0, 1)) <= 1:
             import ipdb; ipdb.set_trace()
+            warnings.warn("There is a problem with the data at this index.")
+
         y[:lengths_y[idx], idx] = s_y
         y_mask[:lengths_y[idx], idx] = 1.
 
