@@ -520,22 +520,17 @@ def build_model(tparams,
                                activ='Linear')
 
     probs = Softmax(logit)
-    hinge_cost = multiclass_hinge_loss(probs, y)
 
     # compute the cost
     cost, errors, ent_errors, ent_derrors = nll_simple(y,
                                                        probs,
-                                                       cost_ent_mask=cost_mask,
-                                                       cost_ent_desc_mask=em)
-    cost = cost #+ 1e-2 * hinge_cost
-    #cost = hinge_cost
+                                                       cost_ent_mask=cost_mask)
     vals = OrderedDict({'desc': x,
                         'word_mask': word_mask,
                         'q': q,
                         'q_mask': q_mask,
                         'ans': y,
                         'wlen': wlen,
-                        'ent_mask': em,
                         'qlen': qlen})
 
     if options['use_sent_reps']:
@@ -562,28 +557,56 @@ def eval_model(f_log_probs,
     probs, errors, costs, alphas, error_ents, error_dents = [], [], [], [], [], []
     n_done = 0
     for batch in iterator:
-        d = batch[0]
-        q = batch[1]
-        a = batch[2]
-        em = batch[3]
-        n_done += len(d)
-        if not use_sent_rep:
-            d, d_mask, q, q_mask, dlen, qlen = prepare_data(d, q)
-            outs = f_log_probs(d,
-                                                           d_mask, q,
-                                                           q_mask, a, dlen,
-                                                           qlen, em)
+        if len(batch) >= 3:
+            d = batch[0]
+            q = batch[1]
+            a = batch[2]
+            em = batch[3]
         else:
-            d, d_mask, q, q_mask, dlen, slen, \
-                    qlen = prepare_data(d, q)
-            outs = f_log_probs(d,
-                                                           d_mask,
-                                                           q,
-                                                           q_mask,
-                                                           a,
-                                                           dlen,
-                                                           slen,
-                                                           qlen, em)
+            d = batch[0]
+            q = batch[1]
+            a = batch[2]
+            em = None
+
+        n_done += len(d)
+        if em:
+            if not use_sent_rep:
+                d, d_mask, q, q_mask, dlen, qlen = prepare_data(d, q)
+                outs = f_log_probs(d,
+                                   d_mask, q,
+                                   q_mask, a, dlen,
+                                   qlen, em)
+            else:
+                d, d_mask, q, q_mask, dlen, slen, \
+                        qlen = prepare_data(d, q)
+
+                outs = f_log_probs(d,
+                                   d_mask,
+                                   q,
+                                   q_mask,
+                                   a,
+                                   dlen,
+                                   slen,
+                                   qlen, em)
+        else:
+            if not use_sent_rep:
+                d, d_mask, q, q_mask, dlen, qlen = prepare_data(d, q)
+                outs = f_log_probs(d,
+                                   d_mask, q,
+                                   q_mask, a, dlen,
+                                   qlen)
+            else:
+                d, d_mask, q, q_mask, dlen, slen, \
+                        qlen = prepare_data(d, q)
+                outs = f_log_probs(d,
+                                   d_mask,
+                                   q,
+                                   q_mask,
+                                   a,
+                                   dlen,
+                                   slen,
+                                   qlen)
+
 
         if len(outs) == 4:
             pcosts, perrors, pprobs, palphas = list(outs)

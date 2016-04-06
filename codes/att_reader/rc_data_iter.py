@@ -78,13 +78,16 @@ def parse_description_sents(seqs_x, sent_end_toks, eos_tok_id, quote_tok_id):
     return batch
 
 
-def load_data(path=None, valid_path=None, test_path=None,
-              batch_size=128, **kwargs):
+def load_data(path=None,
+              valid_path=None,
+              test_path=None,
+              batch_size=128,
+              **kwargs):
     '''
        Loads the dataset.
     '''
     if path is None:
-        path='/u/yyu/stor/caglar/rc-data/cnn/cnn_train_data.h5'
+        path = '/data/lisatmp4/gulcehrc/reading_comprehension_data/cleaned_cnn/cnn_training_data.h5'
 
     print "Using training data ", path
     #############

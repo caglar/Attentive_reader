@@ -62,7 +62,6 @@ def retrieve_word_counts():
 vcounts = retrieve_word_counts()
 safe_pickle(vcounts, "%s_vcounts.pkl" % ("all"))
 
-
 if args.max_vocab_size:
     vcounts_ = vcounts.most_common(args.max_vocab_size)
 else:
