@@ -599,6 +599,6 @@ def dropout_layer(state_before,
     proj = tensor.switch(use_noise,
             state_before * global_trng.binomial(state_before.shape,
                                                 p=p, n=1,
-                                                dtype=state_before.dtype),
-                                                state_before * p)
+                                                dtype=state_before.dtype)/p,
+                                                state_before)
     return proj
