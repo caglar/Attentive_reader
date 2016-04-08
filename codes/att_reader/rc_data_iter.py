@@ -51,8 +51,10 @@ def parse_description_sents(seqs_x, sent_end_toks, eos_tok_id, quote_tok_id):
         words = []
         sents = []
         quote = False
+
         for j, wval in enumerate(desc):
-            if j != len(desc) - 1 and desc[j+1] == quote_tok_id and quote:
+            if j != len(desc) - 1 and \
+                    desc[j+1] == quote_tok_id and quote:
                 words.append(wval)
             elif wval in sent_end_toks:
                 if j != len(desc) - 2 and not quote:
@@ -70,6 +72,7 @@ def parse_description_sents(seqs_x, sent_end_toks, eos_tok_id, quote_tok_id):
                     quote = False
             else:
                 words.append(wval)
+
             if desc[j] == quote_tok_id:
                 quote = not quote
 
@@ -95,12 +98,6 @@ def load_data(path=None,
     #############
 
     print '... initializing data iterators'
-    """
-    if sent_opts is None:
-        kwargs = {}
-    else:
-        kwargs = sent_opts
-    """
     train = PytablesRCDataIterator(batch_size,
                                    path,
                                    use_infinite_loop=False,
@@ -117,6 +114,7 @@ def load_data(path=None,
                                   shuffle=False,
                                   use_infinite_loop=False,
                                   **kwargs) if test_path else None
+
     return train, valid, test
 
 
@@ -155,6 +153,7 @@ class PytablesRCDataIterator(Iterator):
                  start=0,
                  stop=-1,
                  use_sentence_reps=False,
+                 n_batches_in_bucket=8,
                  sent_end_tok_ids=None,
                  quote_tok_id=None,
                  eos_tok_id=None,
@@ -171,6 +170,14 @@ class PytablesRCDataIterator(Iterator):
         self.started = False
         self.use_sentence_reps = use_sentence_reps
         self.sent_end_tok_ids = sent_end_tok_ids
+
+        self.source_buffer = []
+        self.target_buffer = []
+        self.question_buffer = []
+
+        self.n_batches_in_bucket = n_batches_in_bucket
+        self.max_kbatches = batch_size * n_batches_in_bucket
+
         self.eos_tok_id = eos_tok_id
         self.offset = self.start
         self.quote_tok_id = quote_tok_id
@@ -224,29 +231,64 @@ class PytablesRCDataIterator(Iterator):
         q_ngrams = []
         ans = []
 
-        while len(desc_ngrams) < self.batch_size:
-            dlen, dpos = self.d_index[self.offset]['length'], \
-                    self.d_index[self.offset]['pos']
-            qlen, qpos = self.q_index[self.offset]['length'], \
-                    self.q_index[self.offset]['pos']
-            apos = self.a_index[self.offset]['pos']
-            if dlen > max_dlen:
-                max_dlen = dlen
+        assert len(self.source_buffer) == len(self.target_buffer), 'Buffer size mismatch!'
+        assert len(self.source_buffer) == len(self.question_buffer), 'Buffer size mismatch!'
 
-            if qlen > max_qlen:
-                max_qlen = qlen
+        if len(self.source_buffer) == 0:
+            dlens = []
+            while len(self.source_buffer) < self.max_kbatches:
+                dlen, dpos = self.d_index[self.offset]['length'], \
+                        self.d_index[self.offset]['pos']
+                qlen, qpos = self.q_index[self.offset]['length'], \
+                        self.q_index[self.offset]['pos']
+                apos = self.a_index[self.offset]['pos']
+                if dlen > max_dlen:
+                    max_dlen = dlen
 
-            self.offset += 1
-            if self.offset >= self.data_len or self.offset >= self.stop:
-                if self.use_infinite_loop:
-                    self.offset = self.start
-                else:
-                    self.done = True
+                if qlen > max_qlen:
+                    max_qlen = qlen
+                dlens.append(dlen)
+                self.offset += 1
+                if self.offset >= self.data_len or self.offset >= self.stop:
+                    if self.use_infinite_loop:
+                        self.offset = self.start
+                    else:
+                        self.done = True
+                        raise StopIteration
+
+                self.source_buffer.append(self.d_data[dpos:dpos+dlen])
+                self.question_buffer.append(self.q_data[qpos:qpos+qlen])
+                self.target_buffer.append(self.a_data[apos])
+
+            didxs = numpy.array(dlens).argsort()
+            _sbuf = [self.source_buffer[i] for i in didxs]
+            _tbuf = [self.target_buffer[i] for i in didxs]
+            _qbuf = [self.question_buffer[i] for i in didxs]
+
+            self.source_buffer = _sbuf
+            self.target_buffer = _tbuf
+            self.question_buffer = _qbuf
+
+        while True:
+            try:
+                ss = self.source_buffer.pop()
+                ts = self.target_buffer.pop()
+                qs = self.question_buffer.pop()
+            except IndexError:
+                break
+
+            desc_ngrams.append(ss)
+            q_ngrams.append(qs)
+            ans.append(ts)
+
+            if len(desc_ngrams) >= self.batch_size or \
+                    len(q_ngrams) >= self.batch_size or \
+                    len(ans) >= self.batch_size:
+                        break
+
+        if len(desc_ngrams) <= 0 or len(q_ngrams) <= 0 or \
+                len(ans) <= 0:
                     raise StopIteration
-
-            desc_ngrams.append(self.d_data[dpos:dpos+dlen])
-            q_ngrams.append(self.q_data[qpos:qpos+qlen])
-            ans.append(self.a_data[apos])
 
         if self.use_sentence_reps:
             desc_ngrams = parse_description_sents(desc_ngrams,
