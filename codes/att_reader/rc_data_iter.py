@@ -153,7 +153,7 @@ class PytablesRCDataIterator(Iterator):
                  start=0,
                  stop=-1,
                  use_sentence_reps=False,
-                 n_batches_in_bucket=8,
+                 n_batches_in_bucket=12,
                  sent_end_tok_ids=None,
                  quote_tok_id=None,
                  eos_tok_id=None,
