@@ -58,6 +58,7 @@ def retrieve_word_counts():
     vocab_counts = Counter()
     for root, dir_, files in os.walk(args.source_file_dir):
         nfiles = len(files)
+        print "n files", nfiles
         for fidx in tqdm(xrange(nfiles)):
             file_ = files[fidx]
             rt_fil = os.path.join(args.source_file_dir, file_)
@@ -75,11 +76,15 @@ def retrieve_word_counts():
     return vocab_counts
 
 
-vcounts = retrieve_word_counts()
-safe_pickle(vcounts, "%s_vcounts.pkl" % args.vocab_type)
+#vcounts = retrieve_word_counts()
+#safe_pickle(vcounts, "%s_vcounts.pkl" % args.vocab_type)
+
+vcounts = pkl.load(open("None_vcounts.pkl"))
 
 if args.max_vocab_size:
-    vcounts_ = vcounts.most_common(args.max_vocab_size)
+    msize = int(args.max_vocab_size)
+    print "max_vocab_size %d" % msize
+    vcounts_ = vcounts.most_common(msize)
 else:
     vcounts_ = list(vcounts)
 
@@ -92,16 +97,13 @@ vocab['UNK'] = 2
 vocab['NUM'] = 3
 
 i=4
+vcounts_ = OrderedDict(vcounts_)
+
 for vcount in vcounts_:
     if vcounts[vcount] > 1:
-        print vcount, i
         vocab[vcount] = i
         i += 1
 
 logger.info("Saving the vocab.")
 safe_pickle(vocab, args.out_file_name)
 ivocab = {v: k for k, v in vocab.iteritems()}
-
-
-# logger.info("Saving the ivocab.")
-# safe_pickle(ivocab, args.out_file_name + "_i")
