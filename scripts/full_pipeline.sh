@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -x
 
 
 NEWS_SOURCE="cnn"
@@ -10,6 +10,7 @@ VFILE=${DIR}/${VOCAB_NAME}
 
 preprocess_file() {
     MODE=$1
+    echo "$MODE"
     echo "cleaning the ${MODE} file."
     ORIG_DIR=${DIR}/questions/${MODE}
     CLEAN_OUT_DIR=${DIR}/cleaned_${MODE}/
@@ -19,9 +20,9 @@ preprocess_file() {
     echo "saved the cleaned ${MODE} file to ${CLEAN_OUT_DIR}."
     echo
 
-    if [ "${MODE}" == "training" ]
+    if [ "${MODE}" == "validation" ]
     then
-        print "creating the vocab"
+        echo "creating the vocab"
         python preprocess.py --source_file_dir ${CLEAN_OUT_DIR} --out_file_name ${VFILE} --max_vocab_size ${MAX_VOCAB_SIZE}
     fi
 
@@ -33,13 +34,12 @@ preprocess_file() {
         echo "Successfully created the ${MODE} file."
     else
         echo "ERROR: Vocabulary file does not exist" 2>&1
-        #gracefully exit with error code 1.
         exit 1;
     fi
 }
 
-preprocess_file training;
-preprocess_file validation;
-preprocess_file test;
+preprocess_file training
+preprocess_file validation
+preprocess_file test
 
 exit;

@@ -76,10 +76,7 @@ def retrieve_word_counts():
     return vocab_counts
 
 
-#vcounts = retrieve_word_counts()
-#safe_pickle(vcounts, "%s_vcounts.pkl" % args.vocab_type)
-
-vcounts = pkl.load(open("None_vcounts.pkl"))
+vcounts = retrieve_word_counts()
 
 if args.max_vocab_size:
     msize = int(args.max_vocab_size)
